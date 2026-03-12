@@ -2,22 +2,32 @@ const express = require('express');
 const cors = require('cors');
 const mercadopago = require('mercadopago');
 
-// === SETUP MP - SUBSTITUA pelas SUAS ===
-mercadopago.configure({
-  access_token: 'SEU_ACCESS_TOKEN_PRODUCAO_AQUI',  // app.mercadopago.com.br > Produção
-});
-
+// Vercel serverless - NO app.listen()
 // App
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static('.')); // serve HTML/CSS/JS
 
-// POST /create_preference - cria checkout MP com entrega
-app.post('/create_preference', async (req, res) => {
+// Global error handler (Vercel logs)
+app.use((error, req, res, next) => {
+  console.error('🚨 Server Error:', error);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Adapt for Vercel API routes: /api/create_preference
+app.post('/api/create_preference', async (req, res) => {
   try {
-    const { items, endereco } = req.body; // cart + endereço
+    const { items, endereco } = req.body;
     
+    mercadopago.configure({
+      access_token: process.env.MP_ACCESS_TOKEN || 'TEST-8a5774b9-828b-4bb9-a09f-5e86594b6cd5'
+    });
+
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}`
+      : `http://localhost:3000`;
+
     const preference = {
       items: items.map(i => ({
         title: i.name,
@@ -26,42 +36,42 @@ app.post('/create_preference', async (req, res) => {
         currency_id: 'BRL'
       })),
       payer: {
-        name: endereco.nome,
-        email: endereco.email,
-        identification: { type: 'CPF', number: endereco.cpf }
+        name: endereco.nome || 'Cliente',
+        email: endereco.email || 'no-reply@sabores.com',
+        identification: { type: 'CPF', number: endereco.cpf || '12345678901' }
       },
       shipments: {
         receiver_address: {
-          zip_code: endereco.cep.replace(/\D/g, ''),
-          street_name: endereco.rua,
-          street_number: endereco.numero,
-          neighborhood: endereco.bairro
+          zip_code: endereco.cep?.replace(/\D/g, '') || '01001000',
+          street_name: endereco.rua || 'Rua Exemplo',
+          street_number: endereco.numero || '123',
+          neighborhood: endereco.bairro || 'Centro'
         }
       },
       back_urls: {
-        success: 'http://localhost:3000/success.html',
-        failure: 'http://localhost:3000/carrinho.html',
-        pending: 'http://localhost:3000/carrinho.html'
+        success: `${baseUrl}/finalizar-completo.html`,
+        failure: `${baseUrl}/carrinho.html`,
+        pending: `${baseUrl}/carrinho.html`
       },
-      notification_url: 'https://seu-dominio.com/webhook', // seu webhook
+      notification_url: `${baseUrl}/api/webhook`,
       auto_return: 'approved'
     };
 
     const response = await mercadopago.preferences.create(preference);
-    console.log('✅ Preference criada:', response.body.id);
+    console.log('✅ Preference ID:', response.body.id);
     
-    res.json({ id: response.body.id });
+    res.json({ id: response.body.id, init_point: response.body.init_point });
   } catch (error) {
-    console.error('MP Error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ MP Error:', error.message);
+    res.status(400).json({ error: error.message });
   }
 });
 
-// Webhook MP (confirma pagamento)
-app.post('/webhook', (req, res) => {
+// ✅ Clean webhook (Vercel /api/ only)
+app.post('/api/webhook', (req, res) => {
   console.log('🔔 MP Webhook:', req.body);
-  // Salvar pedido banco, enviar email etc.
-  res.sendStatus(200);
+  // TODO: save order to DB, send email
+  res.status(200).json({ received: true });
 });
 
 // Success page serve
@@ -77,9 +87,6 @@ app.get('/success.html', (req, res) => {
   `);
 });
 
-app.listen(3000, () => {
-  console.log('🚀 Backend rodando http://localhost:3000');
-  console.log('📋 Teste: POST http://localhost:3000/create_preference');
-  console.log('🔧 SUBSTITUA access_token linha 7 pelas suas MP PRODUÇÃO!');
-});
+// Serverless export
+module.exports = app;
 

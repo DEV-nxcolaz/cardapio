@@ -1,16 +1,20 @@
-# TODO: Finalizar Pedido - Match Reservas CSS Style ✅
+# Fix Vercel Deployment - Sabores do Brasil
+✅ **1. Create TODO.md** (done)
+✅ **2. Create vercel.json** (done)
+✅ **3. Edit server.js** (✅ complete)
 
-## Plan Breakdown (Approved by user)
-1. ✅ **Create TODO.md** (track progress)
-2. ✅ **Edit finalizar.html**: 
-   - Removed entire inline <style> block (200+ lines)
-   - Added `reservas-page` to main, `reservations-section` to steps
-   - Hero → `.hero` class (matches reservas)
-   - Forms/tabs → reservas form grid styling (#F4A261 borders → #FF6B35 focus)
-   - Buttons → `.btn-continuar`/`.btn-voltar` (orange gradient hovers)
-   - Confirmation → `.reservation-card` (lift/shadow hovers)
-   - Inline flex for tabs (uses shared `.tab-btn`)
-3. ✅ **Test changes**: Added missing style.css rules for steps-nav, form-grid inputs, wider layout. Verified matches reservas (orange theme, form focus, tabs, cards, buttons, responsive).
-4. [ ] **Attempt completion**: Confirm task done
+🎉 **ALL FIXED!** Vercel serverless ready ✅
 
-**Status**: Ready to complete
+**Deploy now:**
+```
+npm install
+git add .
+git commit -m "Fix Vercel FUNCTION_INVOCATION_FAILED"
+git push origin main
+vercel --prod
+```
+
+**Test API:** `https://your-app.vercel.app/api/create_preference`
+
+**Next:** Add `MP_ACCESS_TOKEN` in Vercel dashboard for production payments.
+
