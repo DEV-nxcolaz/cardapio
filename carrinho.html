@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrinho - Sabores do Brasil</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body x-data="{ 
+    cart: Alpine.store('cart'), 
+    loading: false, 
+    endereco: {nome:'', cpf:'', cep:'', rua:'', numero:'', bairro:''},
+    total: 0
+}" x-init="$watch('cart.total', value => total = value)">
+
+    <header>
+        <nav class="navbar">
+            <div class="logo">🍽️ Sabores do Brasil</div>
+            <ul class="nav-links">
+                <li><a href="index.html">🍴 Cardápio</a></li>
+                <li><a href="reservas.html">📅 Reservas</a></li>
+                <li><a href="carrinho.html" class="active">🛒 Carrinho (<span
+                            x-text="cart.items.reduce((s,i)=>s+i.quantity,0) || 0"></span>)</a></li>
+            </ul>
+            <div class="hamburger">☰</div>
+        </nav>
+        <div class="hero" style="height: 50vh;">
+            <h1>🛒 Seu Carrinho</h1>
+            <p x-text="cart.items.length ? `${cart.items.length} itens selecionados` : 'Carrinho vazio'"></p>
+        </div>
+    </header>
+
+    <main class="carrinho-page">
+        <section>
+            <div class="cart-list">
+                <template x-for="item in cart.items" :key="item.id">
+                    <div class="cart-item-full">
+                        <div class="item-info">
+                            <img :src="getItemImage(item.name)" :alt="item.name" class="cart-img">
+                            <div>
+                                <h3 x-text="item.name"></h3>
+                                <p x-text="'R$ ' + item.price.toFixed(2).replace('.', ',') + ' cada'"></p>
+                            </div>
+                        </div>
+                        <div class="item-controls">
+                            <div class="quantity">
+                                Qtd: <span x-text="item.quantity"></span>
+                            </div>
+                            <div class="item-total"
+                                x-text="'R$ ' + (item.price * item.quantity).toFixed(2).replace('.', ',')"></div>
+                            <button @click="cart.remove(item.id)" class="remove-cart-btn">Remover</button>
+                        </div>
+                    </div>
+                </template>
+
+                <div x-show="cart.items.length === 0" class="empty-cart-large">
+                    <p>Carrinho vazio 😢</p>
+                    <a href="index.html" class="continue-btn">➕ Continuar Comprando</a>
+                </div>
+            </div>
+
+            <!-- BOTÃO SIMPLES FINALIZAR -->
+            <div class="cart-actions" x-show="cart.items.length > 0">
+                <div class="total-display">
+                    Total: <strong x-text="'R$ ' + total.toFixed(2).replace('.', ',')"></strong>
+                </div>
+                <a href="finalizar-completo.html" class="btn-finalizar-simples">
+                    🚚 Finalizar Pedido Completo
+                </a>
+            </div>
+
+
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sabores do Brasil. Pagamentos seguros Mercado Pago.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Cart page specific
+        function getItemImage(name) {
+            return 'https://via.placeholder.com/80x80/F4A261/2C1810?text=' + encodeURIComponent(name.slice(0, 8));
+        }
+
+        async function finalizarPedido() {
+            loading = true;
+            const cartData = cart.items;
+            const enderecoData = endereco;
+
+            try {
+                const response = await fetch('/create-preference', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: cartData,
+                        endereco: enderecoData
+                    })
+                });
+
+                const { id } = await response.json();
+                const mp = new MercadoPago('APP_USR-YOUR_PUBLIC_KEY_HERE'); // Sua MP key
+
+                mp.checkout({
+                    preference: { id },
+                    render: {
+                        container: '#mp-container',
+                        label: 'Pagar'
+                    }
+                });
+
+                loading = false;
+            } catch (e) {
+                alert('Erro: ' + e.message + '\\nBackend: node server.js');
+                loading = false;
+            }
+        }
+
+        // Remove auto-redirect - show empty cart
+        window.addEventListener('load', () => {
+            console.log('Carrinho aberto. Itens:', Alpine.store('cart').items.length);
+        });
+    </script>
+</body>
+
+</html>

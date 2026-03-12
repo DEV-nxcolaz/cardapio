@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Pedido - Sabores do Brasil</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body x-data="{
+    step: 1,
+    pagamento: '',
+    pagamento_substep: '',
+    pagamento_sub: 'dinheiro',
+    precisa_troco: false,
+    valor_troco: '',
+    cartao_dados: {
+        numero: '',
+        nome: '',
+        expiracao: '',
+        cvv: ''
+    },
+    pixGerado: false,
+    endereco: { nome: '', telefone: '', cep: '', rua: '', numero: '', complemento: '', bairro: '' },
+    total: Alpine.store('cart')?.total || 29.90
+}">
+
+    <header>
+        <nav class="navbar">
+            <div class="logo">🍽️ Sabores do Brasil</div>
+            <ul class="nav-links">
+                <li><a href="index.html">🍴 Cardápio</a></li>
+                <li><a href="reservas.html">📅 Reservas</a></li>
+                <li><a href="carrinho.html">🛒 Carrinho</a></li>
+            </ul>
+            <div class="hamburger">☰</div>
+        </nav>
+    </header>
+
+    <main class="reservas-page">
+        <div class="hero" style="height: 50vh;">
+            <h1>🚚 Finalizar Pedido</h1>
+            <p>Complete seu pedido e receba em casa!</p>
+        </div>
+
+        <!-- PASSOS -->
+        <div class="steps-nav">
+            <div :class="'step ' + (step === 1 ? 'active' : '')">
+                <div :class="'step-circle ' + (step === 1 ? 'active' : '')">1</div>
+                <div>Endereço</div>
+            </div>
+            <div :class="'step ' + (step === 2 ? 'active' : '')">
+                <div :class="'step-circle ' + (step === 2 ? 'active' : '')">2</div>
+                <div>Pagamento</div>
+            </div>
+            <div :class="'step ' + (step === 3 ? 'active' : '')">
+                <div :class="'step-circle ' + (step === 3 ? 'active' : '')">3</div>
+                <div>Confirmação</div>
+            </div>
+        </div>
+
+        <!-- STEP 1: ENDEREÇO -->
+        <div x-show="step === 1">
+            <section class="reservations-section">
+                <h2>📍 Onde entregar?</h2>
+                <div class="form-grid">
+                    <input x-model="endereco.nome" placeholder="Nome completo *" required>
+                    <input x-model="endereco.telefone" placeholder="Telefone/WhatsApp *" required>
+                    <input x-model="endereco.cep" placeholder="CEP (ex: 01234-567)" required>
+                    <input x-model="endereco.rua" placeholder="Rua/Avenida *" required>
+                    <input x-model="endereco.numero" placeholder="Número *" required>
+                    <input x-model="endereco.complemento" placeholder="Complemento (bloco/apt)">
+                    <input x-model="endereco.bairro" placeholder="Bairro *" required>
+                </div>
+                <div style="text-align: center;">
+                    <button @click="step = 2" class="btn-continuar" :disabled="!endereco.nome">Continuar ➡️</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- STEP 2 PRINCIPAL: Escolha Método -->
+        <div x-show="step === 2 && pagamento_substep === ''">
+            <section class="reservations-section">
+                <h2>💳 Método Principal</h2>
+                <div class="payment-tabs" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                    <!-- PIX Online -->
+                    <button @click="pagamento = 'pix'; step = 3" class="tab-btn"
+                        :class="pagamento === 'pix' ? 'active' : ''">
+                        <div style="font-size: 1.5rem;">💰 PIX Online</div>
+                        <small>QR + Copia/Cola</small>
+                    </button>
+
+                    <!-- Cartão Online -->
+                    <button @click="pagamento = 'cartao_online'; pagamento_substep = 'cartao'" class="tab-btn"
+                        :class="pagamento === 'cartao_online' ? 'active' : ''">
+                        <div style="font-size: 1.5rem;">💳 Cartão Online</div>
+                        <small>Dados do cartão → Pagar</small>
+                    </button>
+
+                    <!-- Na Entrega -->
+                    <button @click="pagamento = 'entrega'; pagamento_substep = 'entrega'" class="tab-btn"
+                        :class="pagamento === 'entrega' ? 'active' : ''">
+                        <div style="font-size: 1.5rem;">💵 Na Entrega</div>
+                        <small>Dinheiro/Cartões + Troco</small>
+                    </button>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <p><strong>Total + entrega R$8: R$ <span
+                                x-text="(total + 8).toFixed(2).replace('.', ',')"></span></strong></p>
+                </div>
+
+                <button @click="step = 1" class="btn-voltar">← Endereço</button>
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button @click="step = 3" class="btn-continuar">Próximo Passo ➡️</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- STEP 2.1: CARTÃO ONLINE -->
+        <div x-show="step === 2 && pagamento_substep === 'cartao' && pagamento === 'cartao_online'">
+            <section class="reservations-section">
+                <h2>💳 Dados do Cartão Online</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 2rem;">Seguro com criptografia Mercado Pago
+                </p>
+
+                <div class="cartao-form"
+                    style="background: rgba(255,253,245,0.95); padding: 2.5rem; border-radius: 20px; max-width: 550px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+                    <div class="form-grid">
+                        <div>
+                            <label>🪪 Número do cartão <span style="color: #FF6B35;">*</span></label>
+                            <input type="text" x-model="cartao_dados.numero" placeholder="1234 5678 9012 3456"
+                                maxlength="19" @keyup="formatCardNumber($event)" required>
+                        </div>
+                        <div>
+                            <label>👤 Nome impresso <span style="color: #FF6B35;">*</span></label>
+                            <input type="text" x-model="cartao_dados.nome" placeholder="JOÃO SILVA"
+                                style="text-transform: uppercase;" required>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                            <div>
+                                <label>📅 Validade <span style="color: #FF6B35;">*</span></label>
+                                <input type="text" x-model="cartao_dados.expiracao" placeholder="MM/AA" maxlength="5"
+                                    @keyup="formatExpiry($event)" required>
+                            </div>
+                            <div>
+                                <label>🔒 CVV <span style="color: #FF6B35;">*</span></label>
+                                <input type="password" x-model="cartao_dados.cvv" placeholder="123" maxlength="4"
+                                    minlength="3" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="border-top: 2px solid #F4A261; padding-top: 1.5rem; margin-top: 1.5rem;">
+                        <div style="text-align: center;">
+                            <p style="font-size: 1.4rem; margin-bottom: 1rem; color: #FF6B35;">
+                                <strong>Total: R$ <span x-text="total.toFixed(2).replace('.', ',')"></span></strong>
+                            </p>
+                            <button @click="processarCartaoOnline(); step = 3" class="btn-continuar"
+                                style="width: 100%; font-size: 1.3rem; padding: 1.3rem;"
+                                :disabled="!cartao_dados.numero || cartao_dados.numero.replace(/\s/g, '').length < 16 || !cartao_dados.nome || cartao_dados.expiracao.length < 5 || cartao_dados.cvv.length < 3">
+
+                                🔒 Confirmar e Cobrar Cartão ➡️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button @click="pagamento_substep = ''; pagamento = ''" class="btn-voltar">← Métodos de
+                        Pagamento</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- STEP 2.2: PAGAR NA ENTREGA (Nova aba igual cartão) -->
+        <div x-show="step === 2 && pagamento_substep === 'entrega' && pagamento === 'entrega'">
+            <section class="reservations-section">
+                <h2>💵 Pagar na Entrega - Detalhes</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 2rem;">Escolha forma e troco (se necessário)
+                </p>
+
+                <div class="entrega-form"
+                    style="background: rgba(255,253,245,0.95); padding: 2.5rem; border-radius: 20px; max-width: 550px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+
+                    <!-- Dinheiro -->
+                    <div class="dinheiro-section" style="margin-bottom: 2rem;">
+                        <h4>💵 Dinheiro</h4>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
+                            <input type="checkbox" x-model="precisa_troco">
+                            <span>Precisa de troco?</span>
+                        </label>
+                        <div x-show="precisa_troco"
+                            style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 12px;">
+                            <label>Valor do troco desejado:</label>
+                            </xai:function_call name="edit_file">
+                            <parameter name="path">c:/programaçao/manutençao/cardapio/finalizar-completo-v2.html
+                                <input type="number" x-model.number="valor_troco" placeholder="ex: 50" min="10"
+                                    max="200" step="5"
+                                    style="width: 100%; padding: 1rem; border: 2px solid #F4A261; border-radius: 8px; font-size: 1.2rem; text-align: center;"
+                                    @input="$nextTick(() => { if (valor_troco > 200) valor_troco = 200 })">
+                                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                                    Total pedido: R$ <span x-text="(total + 8).toFixed(2).replace('.', ',')"></span>
+                                </small>
+                        </div>
+                        <button @click="pagamento_sub = 'dinheiro'; step = 3" class="btn-continuar"
+                            style="width: 100%; margin-top: 1rem;" :disabled="!precisa_troco || !valor_troco">
+                            Confirmar Dinheiro + Troco R$ <span x-text="valor_troco || 0"></span>
+                        </button>
+                    </div>
+
+                    <!-- Cartões -->
+                    <div style="border-top: 2px solid #F4A261; padding-top: 2rem;">
+                        <h4>💳 Cartões Aceitos na Entrega</h4>
+                        <p style="color: #666; margin-bottom: 1.5rem;">Selecione seu cartão:</p>
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
+                            <button @click="pagamento_sub = 'visa'; step = 3" class="tab-btn"
+                                style="padding: 1.2rem 0.8rem;">
+                                <div style="font-size: 1.3rem;">🟡</div>
+                                <div>Visa</div>
+                                <small>Crédito/Débito</small>
+                            </button>
+                            <button @click="pagamento_sub = 'mastercard'; step = 3" class="tab-btn"
+                                style="padding: 1.2rem 0.8rem;">
+                                <div style="font-size: 1.3rem;">🔴</div>
+                                <div>Mastercard</div>
+                                <small>Crédito/Débito</small>
+                            </button>
+                            <button @click="pagamento_sub = 'elo'; step = 3" class="tab-btn"
+                                style="padding: 1.2rem 0.8rem;">
+                                <div style="font-size: 1.3rem;">🟢</div>
+                                <div>Elo</div>
+                                <small>Todas bandeiras</small>
+                            </button>
+                            <button @click="pagamento_sub = 'outros'; step = 3" class="tab-btn"
+                                style="padding: 1.2rem 0.8rem;">
+                                <div style="font-size: 1.3rem;">🟠</div>
+                                <div>Outros</div>
+                                <small>Hipercard/etc</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <p style="font-size: 1.4rem; color: #FF6B35;">
+                        <strong>Total na entrega: R$ <span
+                                x-text="(total + 8).toFixed(2).replace('.', ',')"></span></strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center;">
+                    <button @click="pagamento_substep = ''; pagamento = ''" class="btn-voltar">← Métodos
+                        Pagamento</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- STEP 3: CONFIRMAÇÃO -->
+        <div x-show="step === 3">
+            <section class="reservations-section">
+                <h2>✅ Resumo do Pedido Final</h2>
+                <div class="order-summary"
+                    style="background: linear-gradient(135deg, rgba(255,253,245,0.95), rgba(244,162,97,0.1)); padding: 2.5rem; border-radius: 25px; margin-bottom: 2rem; box-shadow: 0 20px 60px rgba(255,107,53,0.2);">
+                    <h3>📋 Endereço Confirmado</h3>
+                    <div style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                        <p><strong x-text="endereco.nome"></strong></p>
+                        <p
+                            x-text="'📍 ' + endereco.rua + ', nº ' + endereco.numero + (endereco.complemento ? ', ' + endereco.complemento : '') + ' - ' + endereco.bairro">
+                        </p>
+                        <p x-text="'📱 WhatsApp: ' + endereco.telefone"></p>
+                    </div>
+
+                    <div style="border-top: 3px solid #FF6B35; padding-top: 1.5rem;">
+                        <h3>💰 Método de Pagamento</h3>
+                        <p style="font-size: 1.3rem; margin-bottom: 1rem;">
+                            <strong
+                                x-text="pagamento === 'pix' ? 'PIX Online (QR Code)' : pagamento === 'cartao_online' ? 'Cartão Online (' + cartao_dados.numero.slice(-4) + ')' : pagamento_sub === 'dinheiro' ? 'Dinheiro na entrega' + (precisa_troco ? ' (troco R$' + valor_troco + ')' : ' exato') : pagamento_sub.charAt(0).toUpperCase() + pagamento_sub.slice(1) + ' na entrega'"></strong>
+                        </p>
+                        <span x-show="precisa_troco"
+                            style="display: inline-block; background: #f8f9fa; padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold; color: #28a745; margin-top: 0.5rem;">
+                            💰 Troco solicitado: R$ <span x-text="valor_troco"></span>
+                        </span>
+                    </div>
+
+                    <div style="text-align: center; margin: 2rem 0;">
+                        <div
+                            style="font-size: 2rem; font-weight: bold; color: #FF6B35; padding: 2rem; background: white; border-radius: 25px; box-shadow: 0 15px 50px rgba(255,107,53,0.3);">
+                            TOTAL FINAL<br>
+                            <span style="font-size: 2.5rem;">R$ <span
+                                    x-text="(total + 8).toFixed(2).replace('.', ',')"></span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button @click="confirmarPedidoFinal()" class="btn-continuar"
+                        style="font-size: 1.6rem; padding: 1.8rem 5rem; box-shadow: 0 20px 60px rgba(255,107,53,0.5); margin-bottom: 1rem;">
+                        🎉 Confirmar Pedido Agora!
+                    </button>
+                    <p style="color: #666; font-size: 0.9rem;">Você receberá WhatsApp com status do pedido</p>
+                </div>
+                <button @click="step = 2" class="btn-voltar" style="font-size: 1.1rem;">← Alterar Dados</button>
+            </section>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Formatação cartão (chamados via @keyup)
+        function formatCardNumber(event) {
+            let value = event.target.value.replace(/\s/g, '').replace(/[^0-9]/gi, '');
+            value = value.match(/.{1,4}/g)?.join(' ') || value;
+            event.target.value = value;
+        }
+
+        function formatExpiry(event) {
+            let value = event.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,2})/)?.join('/');
+            event.target.value = value;
+        }
+
+        function processarCartaoOnline() {
+            const numLimpo = this.cartao_dados.numero.replace(/\s/g, '');
+            if (numLimpo.length < 16) {
+                alert('Complete o número do cartão (16 dígitos)');
+                return;
+            }
+            alert(`✅ Cartão aprovado (${this.cartao_dados.numero.slice(-4)})\nCobrança R$ ${(this.total).toFixed(2).replace('.', ',')}`);
+        }
+
+        function copiarPixCode() {
+            const code = `PIX+R$${Alpine.store('cart')?.total?.toFixed(2).replace('.', ',') || '29,90'}+Sabores+do+Brasil+(Chave:+55+11+99999-9999)`;
+            navigator.clipboard.writeText(code);
+            alert('✅ Código PIX copiado! App do banco → PIX → Copiar.');
+        }
+
+        function confirmarPedidoFinal() {
+            const numeroPedido = 'PED' + Date.now().toString().slice(-4);
+            const pagamentoTexto = this.pagamento === 'pix' ? 'PIX Online' :
+                this.pagamento === 'cartao_online' ? 'Cartão Online' :
+                    this.pagamento_sub === 'dinheiro' ? `Dinheiro${this.precisa_troco ? ` (troco R$${this.valor_troco})` : ' exato'}` :
+                        `${this.pagamento_sub.charAt(0).toUpperCase() + this.pagamento_sub.slice(1)} na entrega`;
+
+            alert(`✅ Pedido ${numeroPedido} CONFIRMADO!\n\n📍 ${this.endereco.rua}, ${this.endereco.numero}\n💰 ${pagamentoTexto}\n💵 Total: R$ ${(this.total + 8).toFixed(2).replace('.', ',')}\n\n⏰ Preparo 45min - WhatsApp em breve!`);
+            if (Alpine.store('cart')) Alpine.store('cart').clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <footer>
+        <p>&copy; 2024 Sabores do Brasil - Delivery 5⭐ Completo!</p>
+    </footer>
+</body>
+
+</html>

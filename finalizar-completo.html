@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Pedido - Sabores do Brasil</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body x-data="{
+    step: 1,
+    pagamento: '',
+    endereco: { nome: '', telefone: '', cep: '', rua: '', numero: '', complemento: '', bairro: '' },
+    total: Alpine.store('cart')?.total || 45.90,
+    pix_id: Math.floor(Math.random()*1000000),
+    pix_chave: '55' + Math.floor(Math.random()*90000000+10000000) + '-' + Math.floor(Math.random()*9000+1000)
+}">
+    <header>
+        <nav class="navbar">
+            <div class="logo">🍽️ Sabores do Brasil</div>
+            <ul class="nav-links">
+                <li><a href="index.html">🍴 Cardápio</a></li>
+                <li><a href="reservas.html">📅 Reservas</a></li>
+                <li><a href="carrinho.html">🛒 Carrinho</a></li>
+            </ul>
+            <div class="hamburger">☰</div>
+        </nav>
+    </header>
+
+    <main class="reservas-page">
+        <div class="hero" style="height: 50vh;">
+            <h1>🚚 Finalizar Pedido</h1>
+            <p>Complete seu pedido e receba em casa!</p>
+        </div>
+
+        <!-- PASSOS -->
+        <div class="steps-nav">
+            <div :class="'step ' + (step === 1 ? 'active' : '')">
+                <div :class="'step-circle ' + (step === 1 ? 'active' : '')">1</div>
+                <div>Endereço</div>
+            </div>
+            <div :class="'step ' + (step === 2 ? 'active' : '')">
+                <div :class="'step-circle ' + (step === 2 ? 'active' : '')">2</div>
+                <div>Pagamento</div>
+            </div>
+            <div :class="'step ' + (step === 3 ? 'active' : '')">
+                <div :class="'step-circle ' + (step === 3 ? 'active' : '')">3</div>
+                <div>Confirmação</div>
+            </div>
+        </div>
+
+        <!-- STEP 1: ENDEREÇO -->
+        <div x-show="step === 1">
+            <section class="reservations-section">
+                <h2>📍 Onde entregar?</h2>
+                <div class="form-grid">
+                    <input x-model="endereco.nome" placeholder="Nome completo *" required>
+                    <input x-model="endereco.telefone" placeholder="Telefone/WhatsApp *" required>
+                    <input x-model="endereco.cep" placeholder="CEP (ex: 01234-567)" required>
+                    <input x-model="endereco.rua" placeholder="Rua/Avenida *" required>
+                    <input x-model="endereco.numero" placeholder="Número *" required>
+                    <input x-model="endereco.complemento" placeholder="Complemento (bloco/apt)">
+                    <input x-model="endereco.bairro" placeholder="Bairro *" required>
+                </div>
+                <div style="text-align: center;">
+                    <button @click="step = 2" class="btn-continuar" :disabled="!endereco.nome">Continuar ➡️</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- STEP 2: PAGAMENTOS -->
+        <div x-show="step === 2">
+            <section class="reservations-section">
+                <h2>💳 Escolha Pagamento</h2>
+                <div class="payment-tabs">
+                    <button @click="pagamento = 'pix'" :class="'tab-btn ' + (pagamento === 'pix' ? 'active' : '')">
+                        💰 PIX QR Code<br><small>Instantâneo</small>
+                    </button>
+                    <button @click="pagamento = 'cartao'"
+                        :class="'tab-btn ' + (pagamento === 'cartao' ? 'active' : '')">
+                        💳 Cartão<br><small>Crédito/Débito</small>
+                    </button>
+                    <button @click="pagamento = 'dinheiro'"
+                        :class="'tab-btn ' + (pagamento === 'dinheiro' ? 'active' : '')">
+                        💵 Dinheiro<br><small>Na entrega</small>
+                    </button>
+                </div>
+                <button @click="step = 1" class="btn-voltar">← Voltar Endereço</button>
+            </section>
+        </div>
+
+        <!-- STEP 3: CONFIRMAÇÃO + PIX -->
+        <div x-show="step === 3 && pagamento === 'pix'">
+            <section class="reservations-section">
+                <h2>✅ PIX Online - Pague Agora</h2>
+                <div class="pix-qr"
+                    style="text-align: center; padding: 2rem; background: #f8f9fa; border-radius: 16px;">
+                    <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=PIX+R$' + total.toFixed(2).replace('.', ',') + '+Sabores+do+Brasil+ID:' + pix_id + '+Chave:' + pix_chave"
+                        alt="PIX QR Code"
+                        style="max-width: 250px; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.2);">
+                    <p style="margin: 1rem 0;"><strong>Total: R$ <span
+                                x-text="total.toFixed(2).replace('.', ',')"></span></strong></p>
+                    <div
+                        style="background: white; padding: 1rem; border-radius: 8px; margin: 1rem 0; word-break: break-all; font-family: monospace;">
+                        <code
+                            id="pix-code">PIX+R$<span x-text="total.toFixed(2).replace('.', ',')"></span>+Sabores+do+Brasil+ID:<span x-text="pix_id"></span>+Chave:<span x-text="pix_chave"></span></code>
+                    </div>
+                    <button class="btn-continuar"
+                        onclick="navigator.clipboard.writeText('PIX+R$'+$store.total.toFixed(2).replace('.', ',')+'+Sabores+do+Brasil+ID:' + pix_id + '+Chave:' + pix_chave); alert('✅ PIX copiado!');">📋
+                        Copiar PIX</button>
+                    <button @click="confirmarPedidoFinal()" class="btn-continuar" style="background: #28a745;">✅ Paguei
+                        PIX - Confirmar</button>
+                </div>
+                <button @click="step = 2" class="btn-voltar">← Mudar Pagamento</button>
+            </section>
+        </div>
+
+        <!-- STEP 3: OUTROS PAGAMENTOS -->
+        <div x-show="step === 3 && pagamento !== 'pix'">
+            <section class="reservations-section">
+                <h2>✅ Pedido Confirmado - <span
+                        x-text="pagamento === 'cartao' ? 'Cartão' : 'Dinheiro na Entrega'"></span></h2>
+                <div class="reservation-card">
+                    <p><strong>Endereço:</strong> <span
+                            x-text="endereco.rua + ', ' + endereco.numero + ' - ' + endereco.bairro"></span></p>
+                    <p><strong>Pagamento:</strong> <span
+                            x-text="pagamento === 'cartao' ? 'Cartão de crédito/débito' : 'Dinheiro na entrega'"></span>
+                    </p>
+                    <p><strong>Total:</strong> R$ <span x-text="total.toFixed(2).replace('.', ',')"></span></p>
+                    <button @click="confirmarPedidoFinal()" class="btn-continuar" style="width: 100%;">🎉 Finalizar
+                        Pedido</button>
+                </div>
+                <button @click="step = 2" class="btn-voltar">← Voltar Pagamento</button>
+            </section>
+        </div>
+
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        function confirmarPedidoFinal() {
+            alert('✅ Pedido realizado com sucesso!\nCarrinho limpo.');
+            if (Alpine.store('cart')) Alpine.store('cart').clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <footer>
+        <p>&copy; 2024 Sabores do Brasil - Delivery rápido!</p>
+    </footer>
+</body>
+
+</html>

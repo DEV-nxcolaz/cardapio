@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabores do Brasil - Cardápio Digital</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body x-data="{ cart: [], total: 0 }">
+    <header>
+        <nav class="navbar">
+            <div class="logo">🍽️ Sabores do Brasil</div>
+            <ul class="nav-links">
+                <li><a href="index.html#menu">🍴 Cardápio</a></li>
+                <li><a href="reservas.html">📅 Reservas</a></li>
+                <li><a href="carrinho.html" id="cart-link">🛒 Carrinho (<span id="nav-cart-count">0</span>)</a></li>
+            </ul>
+            <div class="hamburger">☰</div>
+        </nav>
+        <div class="hero">
+            <h1>Bem-vindo ao Sabores do Brasil</h1>
+            <p>Cardápio digital interativo com 26+ itens brasileiros autênticos.</p>
+        </div>
+    </header>
+
+    <main>
+        <!-- Cardápio apenas -->
+        <section id="menu" class="menu-section">
+            <h2>🍴 Cardápio (26 itens)</h2>
+            <div class="categories">
+                <button class="category-btn active" data-category="all">Todos</button>
+                <button class="category-btn" data-category="Entradas">Entradas (6)</button>
+                <button class="category-btn" data-category="Pratos Principais">Pratos Principais (8)</button>
+                <button class="category-btn" data-category="Sobremesas">Sobremesas (5)</button>
+                <button class="category-btn" data-category="Bebidas">Bebidas (6)</button>
+            </div>
+            <div id="menu-items" class="menu-grid"></div>
+
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sabores do Brasil. Todos os direitos reservados.</p>
+    </footer>
+
+    <!-- Stripe Modal (handled in JS) -->
+    <div id="stripe-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="payment-element"><!-- Stripe elements --></div>
+            <button id="submit-payment">Pagar Agora</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
