@@ -7,7 +7,8 @@ const mercadopago = require('mercadopago');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.')); // serve HTML/CSS/JS
+// Static files via vercel.json
+app.use(express.static('public')); // fallback if needed
 
 // Global error handler (Vercel logs)
 app.use((error, req, res, next) => {
